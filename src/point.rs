@@ -12,7 +12,12 @@ pub struct PointMass {
 }
 
 impl PointMass {
-    pub fn compute_accel(&self, read_pop: &[PointMass], ns_per_frame: u64) -> PointMass {
+    pub fn compute_accel(
+        &mut self,
+        left_pop: &[PointMass],
+        right_pop: &[PointMass],
+        ns_per_frame: u64,
+    ) {
         let start_vel_x = self.y_vel;
         let start_vel_y = self.x_vel;
 
@@ -21,33 +26,32 @@ impl PointMass {
 
         let time_constant = ns_per_frame as f32 / 1e9;
 
-        for other in read_pop.iter() {
-            if self.x == other.x && self.y == other.y {
-                continue;
-            }
+        for other in left_pop.iter() {
             let vals = self.compute_force_vec(other);
-            result_force_x -= vals.x;
-            result_force_y -= vals.y;
+            result_force_x += vals.x;
+            result_force_y += vals.y;
+        }
+
+        for other in right_pop.iter() {
+            let vals = self.compute_force_vec(other);
+            result_force_x += vals.x;
+            result_force_y += vals.y;
         }
 
         let new_speed_x = start_vel_x + (result_force_x / self.mass) * time_constant;
         let new_speed_y = start_vel_y + (result_force_y / self.mass) * time_constant;
 
-        PointMass {
-            x: self.get_x() + (start_vel_x + new_speed_x) / 2. * time_constant,
-            y: self.get_y() + (start_vel_y + new_speed_y) / 2. * time_constant,
-            mass: self.get_mass(),
-            radius: self.get_radius(),
-            x_vel: new_speed_x,
-            y_vel: new_speed_y,
-        }
+        self.x_vel = new_speed_x;
+        self.y_vel = new_speed_y;
+        self.x = self.get_x() + (start_vel_x + new_speed_x) / 2. * time_constant;
+        self.y = self.get_y() + (start_vel_y + new_speed_y) / 2. * time_constant;
     }
 
     pub fn compute_force_vec(&self, other: &PointMass) -> Vec2D {
         let dx = other.get_x() - self.get_x();
         let dy = other.get_y() - self.get_y();
         let dist = (dx * dx + dy * dy).sqrt();
-        let force = 100. * BIG_G * -self.get_mass() * other.get_mass() / (dist * dist);
+        let force = 10000. * -self.get_mass() * other.get_mass() / (dist * dist);
 
         //we have force and direction, use to modify x and y_vel
         let angle = dy.atan2(dx);
@@ -93,22 +97,6 @@ impl PointMass {
 
     fn get_y_vel(&self) -> f32 {
         self.y_vel
-    }
-
-    fn set_x(&mut self, x: f32) {
-        self.x = x;
-    }
-
-    fn set_y(&mut self, y: f32) {
-        self.y = y;
-    }
-
-    fn set_x_vel(&mut self, x_vel: f32) {
-        self.x_vel = x_vel;
-    }
-
-    fn set_y_vel(&mut self, y_vel: f32) {
-        self.y_vel = y_vel;
     }
 
     fn get_radius(&self) -> f32 {

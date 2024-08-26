@@ -1,7 +1,11 @@
+use rand::prelude::*;
+use rand::Rng;
 use rayon::prelude::*;
 use rerun::Vec2D;
 
 use crate::*;
+
+pub const NUM_ENTITIES: usize = 100;
 
 pub fn run_random_simulation(
     framerate: u64,
@@ -21,13 +25,19 @@ pub fn run_random_simulation(
         .spawn()
         .unwrap();
 
+    let mut rng = rand::rngs::StdRng::from_entropy();
+
     for _ in 0..num_points {
-        let x = rand::random::<f32>() * spawn_radius;
-        let y = rand::random::<f32>() * spawn_radius;
+        let x_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
+        let y_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
+        let x = rand::random::<f32>() * spawn_radius * x_sign;
+        let y = rand::random::<f32>() * spawn_radius * y_sign;
         let mass = rand::random::<f32>() * max_mass;
-        let radius = mass.powf(1.0 / 3.0);
-        let x_vel = rand::random::<f32>() * max_init_speed;
-        let y_vel = rand::random::<f32>() * max_init_speed;
+        let radius = 1e-1 * mass.powf(1.0 / 3.0);
+        let x_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
+        let y_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
+        let x_vel = rand::random::<f32>() * max_init_speed * x_vel_sign;
+        let y_vel = rand::random::<f32>() * max_init_speed * y_vel_sign;
 
         population.push(PointMass {
             x,
@@ -46,10 +56,11 @@ pub fn run_random_simulation(
     while time.get_time() < duration_ns {
         rr.set_time_nanos("stable_time", time.get_time() as i64);
 
-        population = population
-            .par_iter()
-            .map(|p| p.compute_accel(&population, ns_per_frame))
-            .collect();
+        for i in 0..population.len() {
+            let (left_pop, right_pop) = unsafe { population.split_at_mut_unchecked(i) };
+            let (item, right_pop) = right_pop.split_first_mut().unwrap();
+            item.compute_accel(left_pop, right_pop, ns_per_frame);
+        }
 
         match rr.log(
             "gravity_sim",
@@ -65,7 +76,7 @@ pub fn run_random_simulation(
             Ok(_) => (),
             Err(e) => println!("Error logging frame: {:?}", e),
         }
-        if i % 1000 == 0 {
+        if i % 100000 == 0 {
             println!("Frame: {}", i);
         }
         i += 1;
