@@ -18,8 +18,8 @@ impl PointMass {
         right_pop: &[PointMass],
         ns_per_frame: u64,
     ) {
-        let start_vel_x = self.y_vel;
-        let start_vel_y = self.x_vel;
+        let start_vel_x = self.x_vel;
+        let start_vel_y = self.y_vel;
 
         let mut result_force_x = 0.;
         let mut result_force_y = 0.;
@@ -28,14 +28,14 @@ impl PointMass {
 
         for other in left_pop.iter() {
             let vals = self.compute_force_vec(other);
-            result_force_x += vals.x;
-            result_force_y += vals.y;
+            result_force_x -= vals.x;
+            result_force_y -= vals.y;
         }
 
         for other in right_pop.iter() {
             let vals = self.compute_force_vec(other);
-            result_force_x += vals.x;
-            result_force_y += vals.y;
+            result_force_x -= vals.x;
+            result_force_y -= vals.y;
         }
 
         let new_speed_x = start_vel_x + (result_force_x / self.mass) * time_constant;
