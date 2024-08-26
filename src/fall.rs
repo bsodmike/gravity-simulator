@@ -38,7 +38,7 @@ pub trait Falls {
         let dx = other.get_x() - self.get_x();
         let dy = other.get_y() - self.get_y();
         let dist = (dx * dx + dy * dy).sqrt();
-        let force = self.get_mass() * other.get_mass() / (dist * dist);
+        let force = -self.get_mass() * other.get_mass() / (dist * dist);
 
         //we have force and direction, use to modify x and y_vel
         let angle = dy.atan2(dx);
