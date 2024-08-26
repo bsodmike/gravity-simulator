@@ -5,30 +5,46 @@ pub trait Falls {
         right_pop: &[Box<dyn Falls>],
         ns_per_frame: u64,
     ) {
+        let start_vel_x = self.get_x_vel();
+        let start_vel_y = self.get_y_vel();
+        let mut result_force_x = 0.;
+        let mut result_force_y = 0.;
+
         for other in left_pop.iter() {
-            self.compute_fn(other.as_ref(), ns_per_frame);
+            let vals = self.compute_force_vec(other.as_ref(), ns_per_frame);
+            result_force_x += vals[0];
+            result_force_y += vals[1];
         }
 
         for other in right_pop.iter() {
-            self.compute_fn(other.as_ref(), ns_per_frame);
+            let vals = self.compute_force_vec(other.as_ref(), ns_per_frame);
+            result_force_x += vals[0];
+            result_force_y += vals[1];
         }
+
+        let new_speed_x = self.get_x_vel() + (result_force_x / self.get_mass());
+        let new_speed_y = self.get_y_vel() + (result_force_y / self.get_mass());
+
+        self.set_x_vel(new_speed_x);
+        self.set_y_vel(new_speed_y);
+
+        self.set_x(self.get_x() + (start_vel_x + new_speed_x) / 2. * (ns_per_frame as f32 / 1e9));
+        self.set_y(self.get_y() + (start_vel_y + new_speed_y) / 2. * (ns_per_frame as f32 / 1e9));
     }
 
-    fn compute_fn(&mut self, other: &dyn Falls, ns_per_frame: u64) {
+    fn compute_force_vec(&mut self, other: &dyn Falls, ns_per_frame: u64) -> [f32; 2] {
         let dx = other.get_x() - self.get_x();
         let dy = other.get_y() - self.get_y();
         let dist = (dx * dx + dy * dy).sqrt();
-        let force = BIG_G * self.get_mass() * other.get_mass() / (dist * dist);
+        let force = self.get_mass() * other.get_mass() / (dist * dist);
 
         //we have force and direction, use to modify x and y_vel
         let angle = dy.atan2(dx);
-        self.set_x_vel(self.get_x_vel() + (force * angle.cos() / self.get_mass()));
-        self.set_y_vel(self.get_y_vel() + (force * angle.sin() / self.get_mass()));
 
-        //then use x and y vel to modify x and y with respect to the framerate
-        let seconds_per_frame = ns_per_frame as f32 / 1_000_000_000.;
-        self.set_x(self.get_x() + (self.get_x_vel() * seconds_per_frame));
-        self.set_y(self.get_y() + (self.get_y_vel() * seconds_per_frame));
+        [
+            force * angle.cos() / self.get_mass(),
+            force * angle.sin() / self.get_mass(),
+        ]
     }
 
     fn get_x(&self) -> f32;

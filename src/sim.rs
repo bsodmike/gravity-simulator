@@ -24,7 +24,7 @@ pub fn run_random_simulation(
         let x = rand::random::<f32>() * spawn_radius;
         let y = rand::random::<f32>() * spawn_radius;
         let mass = rand::random::<f32>() * max_mass;
-        let radius = mass.sqrt();
+        let radius = mass * 200.;
         let x_vel = rand::random::<f32>() * max_init_speed;
         let y_vel = rand::random::<f32>() * max_init_speed;
 
