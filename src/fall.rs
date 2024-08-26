@@ -14,14 +14,14 @@ pub trait Falls {
 
         for other in left_pop.iter() {
             let vals = self.compute_force_vec(other.as_ref());
-            result_force_x += vals[0];
-            result_force_y += vals[1];
+            result_force_x -= vals[0];
+            result_force_y -= vals[1];
         }
 
         for other in right_pop.iter() {
             let vals = self.compute_force_vec(other.as_ref());
-            result_force_x += vals[0];
-            result_force_y += vals[1];
+            result_force_x -= vals[0];
+            result_force_y -= vals[1];
         }
 
         let new_speed_x = start_vel_x + (result_force_x / self.get_mass()) * time_constant;
