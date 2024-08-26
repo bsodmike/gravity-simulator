@@ -1,5 +1,5 @@
 use gravity_sim::sim::run_random_simulation;
 
 fn main() {
-    run_random_simulation(60, 300000000000, 2, 0., 10000000., 100.);
+    run_random_simulation(1000000, 30000000000, 1000, 1000., 10000000., 100.);
 }

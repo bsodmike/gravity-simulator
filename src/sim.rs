@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use rerun::Vec2D;
 
 use crate::*;
@@ -12,7 +13,7 @@ pub fn run_random_simulation(
 ) {
     let ns_per_frame: u64 = 1_000_000_000 / framerate;
     let mut time = TimeConfig::new(ns_per_frame);
-    let mut population: Vec<Box<dyn Falls>> = Vec::with_capacity(num_points);
+    let mut population: Vec<PointMass> = Vec::with_capacity(num_points);
     let mut pop_colours = Vec::with_capacity(num_points);
     let mut radii = Vec::with_capacity(num_points);
 
@@ -28,14 +29,14 @@ pub fn run_random_simulation(
         let x_vel = rand::random::<f32>() * max_init_speed;
         let y_vel = rand::random::<f32>() * max_init_speed;
 
-        population.push(Box::from(PointMass {
+        population.push(PointMass {
             x,
             y,
             mass,
             radius,
             x_vel,
             y_vel,
-        }));
+        });
 
         pop_colours.push(rerun::Color::from_u32(rand::random::<u32>()));
         radii.push(radius);
@@ -45,18 +46,17 @@ pub fn run_random_simulation(
     while time.get_time() < duration_ns {
         rr.set_time_nanos("stable_time", time.get_time() as i64);
 
-        for i in 0..population.len() {
-            let (left_pop, right_pop) = unsafe { population.split_at_mut_unchecked(i) };
-            let (item, right_pop) = right_pop.split_first_mut().unwrap();
-            item.compute_accel(left_pop, right_pop, ns_per_frame);
-        }
+        population = population
+            .par_iter()
+            .map(|p| p.compute_accel(&population, ns_per_frame))
+            .collect();
 
         match rr.log(
             "gravity_sim",
             &rerun::Points2D::new(
                 population
                     .iter()
-                    .map(|p| Vec2D::new(p.get_x(), p.get_y()))
+                    .map(|p| Vec2D::new(p.x, p.y))
                     .collect::<Vec<Vec2D>>(),
             )
             .with_colors(pop_colours.clone())
