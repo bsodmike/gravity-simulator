@@ -12,6 +12,32 @@ pub struct PointMass {
 }
 
 impl PointMass {
+    pub fn simple_move(
+        &mut self,
+        left_pop: &[PointMass],
+        right_pop: &[PointMass],
+        ns_per_frame: u64,
+    ) {
+        let start_vel_x = self.x_vel;
+        let start_vel_y = self.y_vel;
+
+        let mut result_force_x = 0.;
+        let mut result_force_y = 0.;
+
+        let time_constant = ns_per_frame as f32 / 1e9;
+
+        result_force_x = -10.;
+        result_force_y = -10.;
+
+        let new_speed_x = start_vel_x + (result_force_x / self.mass) * time_constant;
+        let new_speed_y = start_vel_y + (result_force_y / self.mass) * time_constant;
+
+        self.x_vel = new_speed_x;
+        self.y_vel = new_speed_y;
+        self.x = self.get_x() + (start_vel_x + new_speed_x) / 2. * time_constant;
+        self.y = self.get_y() + (start_vel_y + new_speed_y) / 2. * time_constant;
+    }
+
     pub fn compute_accel(
         &mut self,
         left_pop: &[PointMass],

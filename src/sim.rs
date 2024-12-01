@@ -5,8 +5,6 @@ use rerun::Vec2D;
 
 use crate::*;
 
-pub const NUM_ENTITIES: usize = 100;
-
 pub fn run_random_simulation(
     framerate: u64,
     duration_ns: u64,
@@ -33,7 +31,10 @@ pub fn run_random_simulation(
         let x = rand::random::<f32>() * spawn_radius * x_sign;
         let y = rand::random::<f32>() * spawn_radius * y_sign;
         let mass = rand::random::<f32>() * max_mass;
-        let radius = 1e-1 * mass.powf(1.0 / 3.0);
+
+        // Make these large enough to appear on screen
+        let radius = 5e-1 * mass.powf(1.0 / 3.0);
+
         let x_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
         let y_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
         let x_vel = rand::random::<f32>() * max_init_speed * x_vel_sign;
@@ -62,6 +63,13 @@ pub fn run_random_simulation(
             item.compute_accel(left_pop, right_pop, ns_per_frame);
         }
 
+        // for i in 0..population.len() {
+        //     let (left_pop, right_pop) = unsafe { population.split_at_mut_unchecked(i) };
+        //     let (item, right_pop) = right_pop.split_first_mut().unwrap();
+
+        //     item.simple_move(left_pop, right_pop, ns_per_frame);
+        // }
+
         match rr.log(
             "gravity_sim",
             &rerun::Points2D::new(
@@ -76,9 +84,11 @@ pub fn run_random_simulation(
             Ok(_) => (),
             Err(e) => println!("Error logging frame: {:?}", e),
         }
+
         if i % 100000 == 0 {
             println!("Frame: {}", i);
         }
+
         i += 1;
         time.advance_frame();
     }
