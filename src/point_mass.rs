@@ -22,7 +22,7 @@ impl<T: SimdComplexField> PointMass<T> {
 
 const G: f32 = 6.67430e-5;
 
-macro_rules! impl_falls_for_pointmass {
+macro_rules! impl_mechanics_for_pointmass {
     ($t:ty) => {
         impl NewtonianMechanics<$t> for PointMass<$t> {
             fn get_mass(&self) -> $t {
@@ -58,8 +58,8 @@ macro_rules! impl_falls_for_pointmass {
     };
 }
 
-impl_falls_for_pointmass!(f32);
-impl_falls_for_pointmass!(f64);
+impl_mechanics_for_pointmass!(f32);
+impl_mechanics_for_pointmass!(f64);
 
 #[cfg(test)]
 mod tests {
