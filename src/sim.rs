@@ -1,9 +1,11 @@
+use crate::falls::Falls;
+use nalgebra::{SimdComplexField, Vector3};
+
+use crate::point_mass::PointMass;
+use crate::time::TimeConfig;
 use rand::prelude::*;
 use rand::Rng;
-use rayon::prelude::*;
 use rerun::Vec2D;
-
-use crate::*;
 
 pub fn run_random_simulation(
     framerate: u64,
@@ -15,7 +17,7 @@ pub fn run_random_simulation(
 ) {
     let ns_per_frame: u64 = 1_000_000_000 / framerate;
     let mut time = TimeConfig::new(ns_per_frame);
-    let mut population: Vec<PointMass> = Vec::with_capacity(num_points);
+    let mut population: Vec<PointMass<f32>> = Vec::with_capacity(num_points);
     let mut pop_colours = Vec::with_capacity(num_points);
     let mut radii = Vec::with_capacity(num_points);
 
@@ -26,56 +28,71 @@ pub fn run_random_simulation(
     let mut rng = rand::rngs::StdRng::from_entropy();
 
     for _ in 0..num_points {
-        let x_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
-        let y_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
-        let x = rand::random::<f32>() * spawn_radius * x_sign;
-        let y = rand::random::<f32>() * spawn_radius * y_sign;
+        population.push(PointMass::new(
+            nalgebra::Point3::new(
+                rng.gen_range(-spawn_radius..spawn_radius),
+                rng.gen_range(-spawn_radius..spawn_radius),
+                rng.gen_range(-spawn_radius..spawn_radius),
+            ),
+            nalgebra::Vector3::new(
+                rng.gen_range(-max_init_speed..max_init_speed),
+                rng.gen_range(-max_init_speed..max_init_speed),
+                rng.gen_range(-max_init_speed..max_init_speed),
+            ),
+            rng.gen_range(1.0..max_mass),
+        ));
         let mass = rand::random::<f32>() * max_mass;
-
-        // Make these large enough to appear on screen
         let radius = 5e-1 * mass.powf(1.0 / 3.0);
-
-        let x_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
-        let y_vel_sign = if rng.gen_bool(0.5) { 1.0 } else { -1.0 };
-        let x_vel = rand::random::<f32>() * max_init_speed * x_vel_sign;
-        let y_vel = rand::random::<f32>() * max_init_speed * y_vel_sign;
-
-        population.push(PointMass {
-            x,
-            y,
-            mass,
-            radius,
-            x_vel,
-            y_vel,
-        });
 
         pop_colours.push(rerun::Color::from_u32(rand::random::<u32>()));
         radii.push(radius);
+    }
+
+    population.push(PointMass::new(
+        nalgebra::Point3::new(0., 0., 0.),
+        nalgebra::Vector3::new(0.0, 0.0, 0.0),
+        1e14,
+    ));
+
+    pop_colours.push(rerun::Color::from_u32(0));
+    radii.push(600.);
+
+    let mut population2 = population.clone();
+    rr.set_time_nanos("stable_time", time.get_time() as i64);
+
+    match rr.log(
+        "gravity_sim",
+        &rerun::Points2D::new(
+            population
+                .iter()
+                .map(|p| {
+                    let position = p.get_position();
+                    Vec2D::new(position.x, position.y)
+                })
+                .collect::<Vec<Vec2D>>(),
+        )
+        .with_colors(pop_colours.clone())
+        .with_radii(radii.clone()),
+    ) {
+        Ok(_) => (),
+        Err(e) => println!("Error logging frame: {:?}", e),
     }
 
     let mut i = 0;
     while time.get_time() < duration_ns {
         rr.set_time_nanos("stable_time", time.get_time() as i64);
 
-        for i in 0..population.len() {
-            let (left_pop, right_pop) = unsafe { population.split_at_mut_unchecked(i) };
-            let (item, right_pop) = right_pop.split_first_mut().unwrap();
-            item.compute_accel(left_pop, right_pop, ns_per_frame);
-        }
-
-        // for i in 0..population.len() {
-        //     let (left_pop, right_pop) = unsafe { population.split_at_mut_unchecked(i) };
-        //     let (item, right_pop) = right_pop.split_first_mut().unwrap();
-
-        //     item.simple_move(left_pop, right_pop, ns_per_frame);
-        // }
+        compute_next_positions(&mut population, &population2, ns_per_frame);
 
         match rr.log(
             "gravity_sim",
             &rerun::Points2D::new(
                 population
                     .iter()
-                    .map(|p| Vec2D::new(p.x, p.y))
+                    .map(|p| {
+                        let position = p.get_position();
+                        Vec2D::new(position.x, position.y)
+                    })
                     .collect::<Vec<Vec2D>>(),
             )
             .with_colors(pop_colours.clone())
@@ -84,12 +101,47 @@ pub fn run_random_simulation(
             Ok(_) => (),
             Err(e) => println!("Error logging frame: {:?}", e),
         }
-
         if i % 100000 == 0 {
             println!("Frame: {}", i);
         }
-
         i += 1;
+
+        std::mem::swap(&mut population, &mut population2);
+
         time.advance_frame();
+    }
+}
+
+pub fn compute_next_positions<T>(
+    next_set: &mut [impl Falls<T>],
+    last_set: &[impl Falls<T>],
+    ns_per_frame: u64,
+) where
+    T: SimdComplexField,
+{
+    let time_const = ns_per_frame as f64 / 1e9;
+
+    for (i, point) in last_set.iter().enumerate() {
+        let mut force = Vector3::new(T::zero(), T::zero(), T::zero());
+
+        for other in last_set.iter() {
+            if let Some(f) = point.compute_force_vec(other) {
+                force += f;
+            } else {
+                continue;
+            }
+        }
+        let acceleration: Vector3<T> = force / point.get_mass();
+        let old_velocity: Vector3<T> = point.get_velocity();
+
+        let new_velocity = old_velocity.clone()
+            + (acceleration * T::from_simd_real(nalgebra::convert(time_const)));
+
+        let new_position = point.get_position()
+            + (old_velocity + new_velocity.clone())
+                * T::from_simd_real(nalgebra::convert(time_const * 0.5));
+
+        next_set[i].set_velocity(new_velocity);
+        next_set[i].set_position(new_position);
     }
 }
