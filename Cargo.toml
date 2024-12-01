@@ -1,7 +1,14 @@
+cargo-features = ["edition2024"]
+
 [package]
-name = "gravity_sim"
+name = "gravity-simulator"
+authors = [
+    "Avee121",
+    "Michael de Silva <michael@cyberdynea.io>"
+]
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
 nalgebra = "0.33.2"

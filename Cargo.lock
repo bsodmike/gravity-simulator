@@ -2144,7 +2144,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gravity_sim"
+name = "gravity-simulator"
 version = "0.1.0"
 dependencies = [
  "nalgebra",
