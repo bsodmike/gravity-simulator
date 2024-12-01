@@ -1,8 +1,7 @@
-use crate::falls::Falls;
-use nalgebra::distance_squared;
-pub use nalgebra::Point3;
-use nalgebra::SimdComplexField;
-pub use nalgebra::Vector3;
+use crate::prelude::*;
+use mechanics::NewtonianMechanics;
+
+pub mod mechanics;
 
 #[derive(Clone, Debug)]
 pub struct PointMass<T: SimdComplexField> {
@@ -25,7 +24,7 @@ const G: f32 = 6.67430e-5;
 
 macro_rules! impl_falls_for_pointmass {
     ($t:ty) => {
-        impl Falls<$t> for PointMass<$t> {
+        impl NewtonianMechanics<$t> for PointMass<$t> {
             fn get_mass(&self) -> $t {
                 self.mass
             }

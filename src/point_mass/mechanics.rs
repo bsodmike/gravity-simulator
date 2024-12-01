@@ -1,9 +1,6 @@
-use nalgebra::SimdComplexField;
+use crate::prelude::*;
 
-use crate::point_mass::Point3;
-use crate::point_mass::Vector3;
-
-pub trait Falls<T: SimdComplexField> {
+pub trait NewtonianMechanics<T: SimdComplexField> {
     fn get_mass(&self) -> T;
 
     fn get_position(&self) -> Point3<T>;

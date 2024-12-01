@@ -1,7 +1,5 @@
-use crate::falls::Falls;
-use nalgebra::{SimdComplexField, Vector3};
-
 use crate::point_mass::PointMass;
+use crate::prelude::*;
 use crate::time::TimeConfig;
 use rand::prelude::*;
 use rand::Rng;
@@ -113,8 +111,8 @@ pub fn run_random_simulation(
 }
 
 pub fn compute_next_positions<T>(
-    next_set: &mut [impl Falls<T>],
-    last_set: &[impl Falls<T>],
+    next_set: &mut [impl NewtonianMechanics<T>],
+    last_set: &[impl NewtonianMechanics<T>],
     ns_per_frame: u64,
 ) where
     T: SimdComplexField,

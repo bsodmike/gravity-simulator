@@ -1,4 +1,4 @@
-use gravity_sim::sim::run_random_simulation;
+use gravity_simulator::simulate::run_random_simulation;
 
 const NUM_ENTITIES: usize = 40;
 const FRAME_RATE: u64 = 60000;
