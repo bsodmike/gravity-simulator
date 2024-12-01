@@ -1,3 +1,4 @@
+pub mod data;
 pub mod point_mass;
 pub mod simulate;
 pub mod time;

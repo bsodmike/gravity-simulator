@@ -1,3 +1,4 @@
+use crate::data::Population;
 use crate::point_mass::PointMass;
 use crate::prelude::*;
 use crate::time::TimeConfig;
@@ -15,7 +16,7 @@ pub fn run_random_simulation(
 ) {
     let ns_per_frame: u64 = 1_000_000_000 / framerate;
     let mut time = TimeConfig::new(ns_per_frame);
-    let mut population: Vec<PointMass<f32>> = Vec::with_capacity(num_points);
+    let mut population = Population::new(num_points);
     let mut pop_colours = Vec::with_capacity(num_points);
     let mut radii = Vec::with_capacity(num_points);
 
@@ -26,7 +27,7 @@ pub fn run_random_simulation(
     let mut rng = rand::rngs::StdRng::from_entropy();
 
     for _ in 0..num_points {
-        population.push(PointMass::new(
+        population.add(PointMass::new(
             nalgebra::Point3::new(
                 rng.gen_range(-spawn_radius..spawn_radius),
                 rng.gen_range(-spawn_radius..spawn_radius),
@@ -46,7 +47,7 @@ pub fn run_random_simulation(
         radii.push(radius);
     }
 
-    population.push(PointMass::new(
+    population.add(PointMass::new(
         nalgebra::Point3::new(0., 0., 0.),
         nalgebra::Vector3::new(0.0, 0.0, 0.0),
         1e14,
@@ -62,6 +63,7 @@ pub fn run_random_simulation(
         "gravity_sim",
         &rerun::Points2D::new(
             population
+                .get()
                 .iter()
                 .map(|p| {
                     let position = p.get_position();
@@ -80,12 +82,13 @@ pub fn run_random_simulation(
     while time.get_time() < duration_ns {
         rr.set_time_nanos("stable_time", time.get_time() as i64);
 
-        compute_next_positions(&mut population, &population2, ns_per_frame);
+        Population::compute_next_positions(&mut population, &mut population2, ns_per_frame);
 
         match rr.log(
             "gravity_sim",
             &rerun::Points2D::new(
                 population
+                    .get()
                     .iter()
                     .map(|p| {
                         let position = p.get_position();
@@ -107,39 +110,5 @@ pub fn run_random_simulation(
         std::mem::swap(&mut population, &mut population2);
 
         time.advance_frame();
-    }
-}
-
-pub fn compute_next_positions<T>(
-    next_set: &mut [impl NewtonianMechanics<T>],
-    last_set: &[impl NewtonianMechanics<T>],
-    ns_per_frame: u64,
-) where
-    T: SimdComplexField,
-{
-    let time_const = ns_per_frame as f64 / 1e9;
-
-    for (i, point) in last_set.iter().enumerate() {
-        let mut force = Vector3::new(T::zero(), T::zero(), T::zero());
-
-        for other in last_set.iter() {
-            if let Some(f) = point.compute_force_vec(other) {
-                force += f;
-            } else {
-                continue;
-            }
-        }
-        let acceleration: Vector3<T> = force / point.get_mass();
-        let old_velocity: Vector3<T> = point.get_velocity();
-
-        let new_velocity = old_velocity.clone()
-            + (acceleration * T::from_simd_real(nalgebra::convert(time_const)));
-
-        let new_position = point.get_position()
-            + (old_velocity + new_velocity.clone())
-                * T::from_simd_real(nalgebra::convert(time_const * 0.5));
-
-        next_set[i].set_velocity(new_velocity);
-        next_set[i].set_position(new_position);
     }
 }
