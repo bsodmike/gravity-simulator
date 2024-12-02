@@ -46,15 +46,17 @@ macro_rules! impl_mechanics_for_pointmass {
                 if self.get_position() == other.get_position() {
                     return None;
                 }
+
                 let dist2 = distance_squared(&self.get_position(), &other.get_position());
 
+                // Calculate the force of gravity between two point masses
                 let force = <$t>::from(G) * self.get_mass() * other.get_mass() / dist2;
 
+                // Obtain the direction of the other particle, compared to this particle; this is
+                // also a Vector in 3-dimensional cartesian space
                 let direction = other.get_position() - self.get_position();
 
-                // FIXME: This causes particles to move, maybe the normalisation is reducing the
-                // impact of the calculated force?
-                // Some((direction.normalize() * (force)).into())
+                // Multiply the direction by the force (a scalar quantity) to obtain the force vector
                 Some((direction * (force)).into())
             }
         }
