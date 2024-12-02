@@ -71,6 +71,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_compute_force_vec_pre_computed() {
+        let point1 = PointMass::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 0.0), 1e4);
+        let point2 = PointMass::new(Point3::new(2.0, 3.0, 6.0), Vector3::new(0.0, 0.0, 0.0), 1e4);
+
+        let force = point1.compute_force_vec(&point2).unwrap();
+        let force_pre_calculated =
+            Vector3::new(272.4204060374474, 408.63060905617107, 817.2612181123421);
+        assert_eq!(force, force_pre_calculated);
+    }
+
+    #[test]
     fn test_compute_force_vec() {
         let point1 = PointMass::new(Point3::new(0.0, 0.0, 0.0), Vector3::new(0.0, 0.0, 0.0), 1e4);
         let point2 = PointMass::new(Point3::new(2.0, 3.0, 6.0), Vector3::new(0.0, 0.0, 0.0), 1e4);
