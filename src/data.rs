@@ -6,17 +6,37 @@ pub type PointMassCollection = Vec<PointMass<f32>>;
 #[derive(Clone)]
 pub struct Population {
     items: PointMassCollection,
+    colour: Vec<rerun::Color>,
+    radii: Vec<f32>,
 }
 
 impl Population {
     pub fn new(points: usize) -> Self {
         Self {
             items: Vec::with_capacity(points),
+            colour: vec![],
+            radii: vec![],
         }
     }
 
     pub fn add(&mut self, point_mass: PointMass<f32>) {
         self.items.push(point_mass);
+    }
+
+    pub fn add_colour(&mut self, colour: rerun::Color) {
+        self.colour.push(colour);
+    }
+
+    pub fn get_colour_collection(&self) -> &Vec<rerun::Color> {
+        &self.colour
+    }
+
+    pub fn get_radii_collection(&self) -> &Vec<f32> {
+        &self.radii
+    }
+
+    pub fn add_radius(&mut self, radius: f32) {
+        self.radii.push(radius);
     }
 
     pub fn get(&self) -> &PointMassCollection {

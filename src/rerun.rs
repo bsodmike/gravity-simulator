@@ -4,24 +4,13 @@ use crate::RenderMode;
 use rerun::RecordingStream;
 use rerun::{Vec2D, Vec3D};
 
-pub fn write_log(
-    rr: &mut RecordingStream,
-    population: &mut Population,
-    colours: &Vec<rerun::Color>,
-    radii: &Vec<f32>,
-    render_mode: &RenderMode,
-) {
+pub fn write_log(rr: &mut RecordingStream, population: &mut Population, render_mode: &RenderMode) {
     match render_mode {
-        RenderMode::TwoD => write_log_2d(rr, population, colours, radii),
-        RenderMode::ThreeD => write_log_3d(rr, population, colours, radii),
+        RenderMode::TwoD => write_log_2d(rr, population),
+        RenderMode::ThreeD => write_log_3d(rr, population),
     }
 }
-pub fn write_log_2d(
-    rr: &mut RecordingStream,
-    population: &mut Population,
-    colours: &Vec<rerun::Color>,
-    radii: &Vec<f32>,
-) {
+pub fn write_log_2d(rr: &mut RecordingStream, population: &mut Population) {
     match rr.log(
         "gravity_sim",
         &rerun::Points2D::new(
@@ -34,20 +23,15 @@ pub fn write_log_2d(
                 })
                 .collect::<Vec<Vec2D>>(),
         )
-        .with_colors(colours.clone())
-        .with_radii(radii.clone()),
+        .with_colors(population.get_colour_collection().clone())
+        .with_radii(population.get_radii_collection().clone()),
     ) {
         Ok(_) => (),
         Err(e) => println!("Error logging frame: {:?}", e),
     };
 }
 
-pub fn write_log_3d(
-    rr: &mut RecordingStream,
-    population: &mut Population,
-    colours: &Vec<rerun::Color>,
-    radii: &Vec<f32>,
-) {
+pub fn write_log_3d(rr: &mut RecordingStream, population: &mut Population) {
     match rr.log(
         "gravity_sim",
         &rerun::Points3D::new(
@@ -60,8 +44,8 @@ pub fn write_log_3d(
                 })
                 .collect::<Vec<Vec3D>>(),
         )
-        .with_colors(colours.clone())
-        .with_radii(radii.clone()),
+        .with_colors(population.get_colour_collection().clone())
+        .with_radii(population.get_radii_collection().clone()),
     ) {
         Ok(_) => (),
         Err(e) => println!("Error logging frame: {:?}", e),
