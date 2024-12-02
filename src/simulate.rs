@@ -48,12 +48,12 @@ pub fn run_random_simulation(
         radii.push(radius);
     }
 
+    // NOTE: Add super heavy mass
     population.add(PointMass::new(
         nalgebra::Point3::new(0., 0., 0.),
         nalgebra::Vector3::new(0.0, 0.0, 0.0),
-        1e14,
+        1e17,
     ));
-
     pop_colours.push(rerun::Color::from_u32(0));
     radii.push(600.);
 

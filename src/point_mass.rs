@@ -52,7 +52,10 @@ macro_rules! impl_mechanics_for_pointmass {
 
                 let direction = other.get_position() - self.get_position();
 
-                Some((direction.normalize() * (force)).into())
+                // FIXME: This causes particles to move, maybe the normalisation is reducing the
+                // impact of the calculated force?
+                // Some((direction.normalize() * (force)).into())
+                Some((direction * (force)).into())
             }
         }
     };
