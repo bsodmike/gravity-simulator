@@ -1,10 +1,10 @@
 use crate::data::Population;
 use crate::point_mass::PointMass;
-use crate::prelude::*;
+use crate::rerun::write_log;
 use crate::time::TimeConfig;
+use crate::RenderMode;
 use rand::prelude::*;
 use rand::Rng;
-use rerun::Vec2D;
 
 pub fn run_random_simulation(
     framerate: u64,
@@ -13,6 +13,7 @@ pub fn run_random_simulation(
     max_init_speed: f32,
     max_mass: f32,
     spawn_radius: f32,
+    render_mode: RenderMode,
 ) {
     let ns_per_frame: u64 = 1_000_000_000 / framerate;
     let mut time = TimeConfig::new(ns_per_frame);
@@ -20,7 +21,7 @@ pub fn run_random_simulation(
     let mut pop_colours = Vec::with_capacity(num_points);
     let mut radii = Vec::with_capacity(num_points);
 
-    let rr = rerun::RecordingStreamBuilder::new("gravity sim")
+    let mut rr = rerun::RecordingStreamBuilder::new("gravity sim")
         .spawn()
         .unwrap();
 
@@ -59,24 +60,7 @@ pub fn run_random_simulation(
     let mut population2 = population.clone();
     rr.set_time_nanos("stable_time", time.get_time() as i64);
 
-    match rr.log(
-        "gravity_sim",
-        &rerun::Points2D::new(
-            population
-                .get()
-                .iter()
-                .map(|p| {
-                    let position = p.get_position();
-                    Vec2D::new(position.x, position.y)
-                })
-                .collect::<Vec<Vec2D>>(),
-        )
-        .with_colors(pop_colours.clone())
-        .with_radii(radii.clone()),
-    ) {
-        Ok(_) => (),
-        Err(e) => println!("Error logging frame: {:?}", e),
-    }
+    write_log(&mut rr, &mut population, &pop_colours, &radii, &render_mode);
 
     let mut i = 0;
     while time.get_time() < duration_ns {
@@ -84,24 +68,8 @@ pub fn run_random_simulation(
 
         Population::compute_next_positions(&mut population, &mut population2, ns_per_frame);
 
-        match rr.log(
-            "gravity_sim",
-            &rerun::Points2D::new(
-                population
-                    .get()
-                    .iter()
-                    .map(|p| {
-                        let position = p.get_position();
-                        Vec2D::new(position.x, position.y)
-                    })
-                    .collect::<Vec<Vec2D>>(),
-            )
-            .with_colors(pop_colours.clone())
-            .with_radii(radii.clone()),
-        ) {
-            Ok(_) => (),
-            Err(e) => println!("Error logging frame: {:?}", e),
-        }
+        write_log(&mut rr, &mut population, &pop_colours, &radii, &render_mode);
+
         if i % 100000 == 0 {
             println!("Frame: {}", i);
         }
